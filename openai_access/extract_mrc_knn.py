@@ -5,7 +5,6 @@ import os
 import faiss
 import random
 
-
 def read_feature(dir_, prefix):
     info_file = json.load(open(os.path.join(dir_, f"{prefix}.start_word_feature_info.json")))
     features = np.memmap(os.path.join(dir_, f"{prefix}.start_word_feature.npy"), 
@@ -58,7 +57,7 @@ def compute_mrc_knn(test_info, test_features, train_info, train_features, train_
     return example_idx, example_value
 
 def compute_simcse_knn(test_mrc_data, train_mrc_data, knn_num, test_index=None):
-    sim_model = SimCSE("/data2/wangshuhe/gpt3_ner/models/sup-simcse-roberta-large")
+    sim_model = SimCSE("/Users/mamooler/Desktop/incontext_ie/GPT-NER/models/sup-simcse-roberta-large/model")
 
     train_sentence = {}
     train_sentence_index = {}
@@ -77,6 +76,7 @@ def compute_simcse_knn(test_mrc_data, train_mrc_data, knn_num, test_index=None):
         train_sentence[label].append(context)
         train_sentence_index[label].append(idx_)
     
+    ## train_sentence = {ORG: [context1, context2, ...], PER: [context1, context2, ...], ...}
     train_index = {}
     for key, _ in train_sentence.items():
         embeddings = sim_model.encode(train_sentence[key], batch_size=128, normalize_to_unit=True, return_numpy=True)
@@ -228,7 +228,7 @@ if __name__ == '__main__':
     # index_, value_ = random_knn(test_mrc_data=test_mrc_data, train_mrc_data=train_mrc_data, knn_num=32)
     # write_file(dir_="/data2/wangshuhe/gpt3_ner/gpt3-data/conll_mrc/test.random.32.knn.jsonl", data=index_)
 
-    test_mrc_data = read_mrc_data(dir_="/data2/wangshuhe/gpt3_ner/gpt3-data/ontonotes5_mrc", prefix="test.100")
-    train_mrc_data = read_mrc_data(dir_="/data2/wangshuhe/gpt3_ner/gpt3-data/ontonotes5_mrc", prefix="dev")
+    test_mrc_data = read_mrc_data(dir_="/Users/mamooler/Desktop/incontext_ie/GPT-NER/data/conll_mrc", prefix="test.100")
+    train_mrc_data = read_mrc_data(dir_="/Users/mamooler/Desktop/incontext_ie/GPT-NER/data/conll_mrc", prefix="train")
     index_, value_ = compute_simcse_knn(test_mrc_data=test_mrc_data, train_mrc_data=train_mrc_data, knn_num=32)
-    write_file(dir_="/data2/wangshuhe/gpt3_ner/gpt3-data/ontonotes5_mrc/test.100.simcse.dev.32.knn.jsonl", data=index_)
+    write_file(dir_="/Users/mamooler/Desktop/incontext_ie/GPT-NER/data/conll_mrc/test.100.simcse.train.32.knn.jsonl", data=index_)

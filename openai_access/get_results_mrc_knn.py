@@ -23,6 +23,7 @@ def get_parser():
     parser.add_argument("--last-results", type=str, default="None", help="unfinished file")
     parser.add_argument("--write-dir", type=str, help="directory for the output")
     parser.add_argument("--write-name", type=str, help="file name for the output")
+    parser.add_argument("--demo_retrieval", type=str, choices=['random', 'sentence_knn', 'entity_knn'])
     
     return parser
 
@@ -56,7 +57,13 @@ def mrc2prompt(mrc_data, data_name="CONLL", example_idx=None, train_mrc_data=Non
 
     def get_example(index):
         exampel_prompt = ""
-        for idx_ in example_idx[index][:example_num]:
+        if not example_idx:
+            random.seed(12345*(index+1))
+            example_idx_list = random.sample([idx_ for idx_ in range(len(train_mrc_data))], example_num)
+        else:
+            example_idx_list = example_idx[index][:example_num]
+        for idx_ in example_idx_list:
+            # print(train_mrc_data)
             context = train_mrc_data[idx_]["context"]
             context_list = context.strip().split()
             labels = ""
@@ -132,6 +139,7 @@ def ner_access(openai_access, ner_pairs, batch=16):
 
 def write_file(labels, dir_, last_name):
     print("writing ...")
+    os.makedirs(dir_, exist_ok=True)
     file_name = os.path.join(dir_, last_name)
     file = open(file_name, "w")
     for line in labels:
@@ -176,7 +184,10 @@ if __name__ == '__main__':
 
     ner_test = read_mrc_data(args.source_dir, prefix=args.source_name)
     mrc_train = read_mrc_data(dir_=args.source_dir, prefix=args.train_name)
-    example_idx = read_idx(args.example_dir, args.example_name)
+    if args.demo_retrieval == "random":
+        example_idx = None
+    else:
+        example_idx = read_idx(args.example_dir, args.example_name)
 
     last_results = None
     if args.last_results != "None":

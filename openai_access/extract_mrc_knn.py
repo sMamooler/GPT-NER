@@ -57,7 +57,7 @@ def compute_mrc_knn(test_info, test_features, train_info, train_features, train_
     return example_idx, example_value
 
 def compute_simcse_knn(test_mrc_data, train_mrc_data, knn_num, test_index=None):
-    sim_model = SimCSE("/Users/mamooler/Desktop/incontext_ie/GPT-NER/models/sup-simcse-roberta-large/model")
+    sim_model = SimCSE("/mnt/u14157_ic_nlp_001_files_nfs/nlpdata1/home/mamooler/ICL_IE_Project/GPT-NER/models/sup-simcse-roberta-large/model")
 
     train_sentence = {}
     train_sentence_index = {}
@@ -85,7 +85,7 @@ def compute_simcse_knn(test_mrc_data, train_mrc_data, knn_num, test_index=None):
         index.add(embeddings.astype(np.float32))
         # 10 is a default setting in simcse
         index.nprobe = min(10, len(train_sentence[key]))
-        index = faiss.index_gpu_to_cpu(index)
+        # index = faiss.index_gpu_to_cpu(index)
 
         train_index[key] = index
 
@@ -228,7 +228,7 @@ if __name__ == '__main__':
     # index_, value_ = random_knn(test_mrc_data=test_mrc_data, train_mrc_data=train_mrc_data, knn_num=32)
     # write_file(dir_="/data2/wangshuhe/gpt3_ner/gpt3-data/conll_mrc/test.random.32.knn.jsonl", data=index_)
 
-    test_mrc_data = read_mrc_data(dir_="/Users/mamooler/Desktop/incontext_ie/GPT-NER/data/conll_mrc", prefix="test.100")
-    train_mrc_data = read_mrc_data(dir_="/Users/mamooler/Desktop/incontext_ie/GPT-NER/data/conll_mrc", prefix="train")
+    test_mrc_data = read_mrc_data(dir_="/mnt/u14157_ic_nlp_001_files_nfs/nlpdata1/home/mamooler/ICL_IE_Project/GPT-NER/data/conll_mrc", prefix="test.100")
+    train_mrc_data = read_mrc_data(dir_="/mnt/u14157_ic_nlp_001_files_nfs/nlpdata1/home/mamooler/ICL_IE_Project/GPT-NER/data/conll_mrc", prefix="train")
     index_, value_ = compute_simcse_knn(test_mrc_data=test_mrc_data, train_mrc_data=train_mrc_data, knn_num=32)
-    write_file(dir_="/Users/mamooler/Desktop/incontext_ie/GPT-NER/data/conll_mrc/test.100.simcse.train.32.knn.jsonl", data=index_)
+    write_file(dir_="/mnt/u14157_ic_nlp_001_files_nfs/nlpdata1/home/mamooler/ICL_IE_Project/GPT-NER/data/conll_mrc/test.100.simcse.train.32.knn.jsonl", data=index_)

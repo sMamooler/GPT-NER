@@ -2,11 +2,13 @@
 *.DS_Store
 
 # Logs
-logs/*
+openai_access/logs
 
 #
 experiments/*
 log/*
+data/*
+models/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

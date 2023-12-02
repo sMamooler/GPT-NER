@@ -55,23 +55,24 @@ def read_idx(dir_, prefix="test"):
 def mrc2prompt(mrc_data, data_name="CONLL", example_idx=None, train_mrc_data=None, example_num=16, last_results=None):
     print("mrc2prompt ...")
 
-    def get_example(index):
+    def get_example(index, label):
         exampel_prompt = ""
         if not example_idx:
             random.seed(12345*(index+1))
-            example_idx_list = random.sample([idx_ for idx_ in range(len(train_mrc_data))], example_num)
+            train_mrc_data_label = [e for e in train_mrc_data if e['entity_label']==label]
+            example_idx_list = random.sample([idx_ for idx_ in range(len(train_mrc_data_label))], example_num)
         else:
             example_idx_list = example_idx[index][:example_num]
         for idx_ in example_idx_list:
             # print(train_mrc_data)
-            context = train_mrc_data[idx_]["context"]
+            context = train_mrc_data_label[idx_]["context"]
             context_list = context.strip().split()
             labels = ""
 
             last_ = 0
-            for span_idx in range(len(train_mrc_data[idx_]["start_position"])):
-                start_ = train_mrc_data[idx_]["start_position"][span_idx]
-                end_ = train_mrc_data[idx_]["end_position"][span_idx] + 1
+            for span_idx in range(len(train_mrc_data_label[idx_]["start_position"])):
+                start_ = train_mrc_data_label[idx_]["start_position"][span_idx]
+                end_ = train_mrc_data_label[idx_]["end_position"][span_idx] + 1
                 if labels != "":
                     labels += " "
                 if last_ == start_:
@@ -109,7 +110,7 @@ def mrc2prompt(mrc_data, data_name="CONLL", example_idx=None, train_mrc_data=Non
 
         # prompt += get_knn(test_sentence=context, nums=example_false, label_name=transfered_label, positive_idx=0)
         # prompt += get_knn(test_sentence=context, nums=example_true, label_name=transfered_label, positive_idx=1)
-        prompt += get_example(index=item_idx)
+        prompt += get_example(index=item_idx, label=origin_label)
 
         # context_list = context.strip().split()
         # index_string = ""
@@ -121,6 +122,9 @@ def mrc2prompt(mrc_data, data_name="CONLL", example_idx=None, train_mrc_data=Non
 
         # print(prompt)
         results.append(prompt)
+        # print(f"sample {item_idx}")
+        # print(f"prompt:\n{prompt}")
+        # print("##########################################")
     
     return results
 

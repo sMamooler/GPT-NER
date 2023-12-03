@@ -7,7 +7,7 @@ import argparse
 from dataset_name import FULL_DATA
 import random
 
-random.seed(1)
+# random.seed(1)
 logger = get_logger(__name__)
 
 def get_parser():
@@ -24,11 +24,12 @@ def get_parser():
     parser.add_argument("--write-dir", type=str, help="directory for the output")
     parser.add_argument("--write-name", type=str, help="file name for the output")
     parser.add_argument("--demo_retrieval", type=str, choices=['random', 'sentence_knn', 'entity_knn'])
+    parser.add_argument("--seed", type=int, default=12345, help="seed for random")
     
     return parser
 
 def read_mrc_data(dir_, prefix="test"):
-    file_name = os.path.join(dir_, f"mrc-ner.{prefix}")
+    file_name = os.path.join(dir_, f"ner.{prefix}")
     return json.load(open(file_name, encoding="utf-8"))
 
 def read_results(dir_):
@@ -39,7 +40,7 @@ def read_results(dir_):
 
 def read_examples(dir_, prefix="dev"):
     print("reading ...")
-    file_name = os.path.join(dir_, f"mrc-ner.{prefix}")
+    file_name = os.path.join(dir_, f"ner.{prefix}")
     return json.load(open(file_name, encoding="utf-8"))
 
 def read_idx(dir_, prefix="test"):
@@ -52,13 +53,12 @@ def read_idx(dir_, prefix="test"):
     file.close()
     return example_idx
 
-def mrc2prompt(mrc_data, data_name="CONLL", example_idx=None, train_mrc_data=None, example_num=16, last_results=None):
+def mrc2prompt(mrc_data, seed, data_name="CONLL", example_idx=None, train_mrc_data=None, example_num=16, last_results=None):
     print("mrc2prompt ...")
 
     def get_example(index, label):
-        exampel_prompt = ""
+        exampel_prompt = []
         if not example_idx:
-            random.seed(12345*(index+1))
             train_mrc_data_label = [e for e in train_mrc_data if e['entity_label']==label]
             example_idx_list = random.sample([idx_ for idx_ in range(len(train_mrc_data_label))], example_num)
         else:
@@ -67,31 +67,53 @@ def mrc2prompt(mrc_data, data_name="CONLL", example_idx=None, train_mrc_data=Non
             # print(train_mrc_data)
             context = train_mrc_data_label[idx_]["context"]
             context_list = context.strip().split()
-            labels = ""
+            
+            ### for word level
+            # labels = ""
 
+            # last_ = 0
+            # for span_idx in range(len(train_mrc_data_label[idx_]["start_position_word"])):
+            #     start_ = train_mrc_data_label[idx_]["start_position_word"][span_idx]
+            #     end_ = train_mrc_data_label[idx_]["end_position_word"][span_idx] + 1
+            #     if labels != "":
+            #         labels += " "
+            #     if last_ == start_:
+            #         labels += "@@" + " ".join(context_list[start_:end_]) + "##"
+            #     else:
+            #         labels += " ".join(context_list[last_:start_]) + " @@" + " ".join(context_list[start_:end_]) + "##"
+            #     last_ = end_
+
+            # if labels != "" and last_ != len(context_list):
+            #     labels += " "
+            # labels += " ".join(context_list[last_:])
+
+            ### for char level
+            labels = ""
             last_ = 0
-            for span_idx in range(len(train_mrc_data_label[idx_]["start_position"])):
-                start_ = train_mrc_data_label[idx_]["start_position"][span_idx]
-                end_ = train_mrc_data_label[idx_]["end_position"][span_idx] + 1
+            for span_idx in range(len(train_mrc_data_label[idx_]["start_position_char"])):
+                start_ = train_mrc_data_label[idx_]["start_position_char"][span_idx]
+                end_ = train_mrc_data_label[idx_]["end_position_char"][span_idx] + 1
                 if labels != "":
                     labels += " "
                 if last_ == start_:
-                    labels += "@@" + " ".join(context_list[start_:end_]) + "##"
+                    labels += "@@" + context[start_:end_] + "##"
                 else:
-                    labels += " ".join(context_list[last_:start_]) + " @@" + " ".join(context_list[start_:end_]) + "##"
+                    labels += context[last_:start_] + "@@" + context[start_:end_] + "##"
                 last_ = end_
 
-            if labels != "" and last_ != len(context_list):
-                labels += " "
-            labels += " ".join(context_list[last_:])
+            labels += context[last_:]
 
-            exampel_prompt += f"The given sentence: {context}\n"
+            exampel_prompt += [
+                {"role": "user", "content": f"The given sentence: {context}\nThe labeled sentence:"},
+                {"role": "assistant", "content": f"{labels}"},
+            ]
             
-            # exampel_prompt += f"{prompt_label_name} entities: {labels}\n"
-            exampel_prompt += f"The labeled sentence: {labels}\n"
         return exampel_prompt
         
-    results = []
+    prompt = []
+
+    random.seed(seed)
+    random.shuffle(train_mrc_data)
     for item_idx in tqdm(range(len(mrc_data))):
 
         if last_results is not None and last_results[item_idx].strip() != "FRIDAY-ERROR-ErrorType.unknown":
@@ -104,29 +126,32 @@ def mrc2prompt(mrc_data, data_name="CONLL", example_idx=None, train_mrc_data=Non
         prompt_label_name = transfered_label[0].upper() + transfered_label[1:]
         # prompt = f"I want to extract {transfered_label} entities that {sub_prompt}, and if that does not exist output \"none\". Below are some examples.\n"
         # prompt = f"I want to extract {transfered_label} entities that {sub_prompt}. Below are some examples.\n"
-        prompt = f"You are an excellent linguist. Within the OntoNotes5.0 dataset, the task is to label {transfered_label} entities that {sub_prompt}. Below are some examples, and you should make the same prediction as the examples.\n"
+        prompt += [
+            {"role": "user", "content": f"You are an excellent linguist. Within the {data_name} dataset, the task is to label {transfered_label} entities that {sub_prompt}. Below are some examples, and you should make the same prediction as the examples.\n"}
+        ]
         # prompt = f"You are an excellent linguist. The task is to label {transfered_label} entities in the given sentence. {prompt_label_name} entities {sub_prompt}. Noted that if the given sentence does not contain any {transfered_label} entities, just output the same sentence, or surround the extracted entities by @@ and ## if there exist {transfered_label} entities. Below are some examples."
         # prompt = f"You are an excellent linguistic. The task is to label {transfered_label} entities that {sub_prompt}. First, articulate the clues and reasoning process for determining {transfered_label} entities in the sentence. Next, based on the clues and your reasoning process, label {transfered_label} entities in the sentence. Below are some examples.\n"
 
         # prompt += get_knn(test_sentence=context, nums=example_false, label_name=transfered_label, positive_idx=0)
         # prompt += get_knn(test_sentence=context, nums=example_true, label_name=transfered_label, positive_idx=1)
-        prompt += get_example(index=item_idx, label=origin_label)
-
+        demos = get_example(index=item_idx, label=origin_label)
+        prompt += demos
         # context_list = context.strip().split()
         # index_string = ""
         # for sub_idx in range(len(context_list)):
         #     index_string += f"{context_list[sub_idx]} {sub_idx}\n"
         # prompt += f"The given sentence: {context}\n{index_string}{prompt_label_name} entities:"
-        prompt += f"The given sentence: {context}\nThe labeled sentence:"
+        prompt += [
+           {"role": "user", "content": f"The given sentence: {context}\nThe labeled sentence:"}
+        ]
         # prompt += f"The given sentence: {context}\nThe labeled sentence:"
 
         # print(prompt)
-        results.append(prompt)
+        # results.append(prompt)
         # print(f"sample {item_idx}")
         # print(f"prompt:\n{prompt}")
         # print("##########################################")
-    
-    return results
+    return prompt
 
 def ner_access(openai_access, ner_pairs, batch=16):
     print("tagging ...")
@@ -134,7 +159,7 @@ def ner_access(openai_access, ner_pairs, batch=16):
     start_ = 0
     pbar = tqdm(total=len(ner_pairs))
     while start_ < len(ner_pairs):
-        end_ = min(start_+batch, len(ner_pairs))
+        end_ = min(start_+(batch*22), len(ner_pairs))
         results = results + openai_access.get_multiple_sample(ner_pairs[start_:end_])
         pbar.update(end_-start_)
         start_ = end_
@@ -177,7 +202,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     openai_access = AccessBase(
-        engine="text-davinci-003",
+        engine="gpt-3.5-turbo-16k",
         temperature=0.0,
         max_tokens=512,
         top_p=1,
@@ -197,7 +222,8 @@ if __name__ == '__main__':
     if args.last_results != "None":
         last_results = read_results(dir_=args.last_results)
 
-    prompts = mrc2prompt(mrc_data=ner_test, data_name=args.data_name, example_idx=example_idx, train_mrc_data=mrc_train, example_num=args.example_num, last_results=last_results)
-    results = ner_access(openai_access=openai_access, ner_pairs=prompts, batch=4)
+    prompts = mrc2prompt(mrc_data=ner_test, seed=args.seed, data_name=args.data_name, example_idx=example_idx, train_mrc_data=mrc_train, example_num=args.example_num, last_results=last_results)
+    results = ner_access(openai_access=openai_access, ner_pairs=prompts, batch=1)
     # print(results)
-    write_file(results, args.write_dir, args.write_name)
+    write_name = args.write_name + f".{args.seed}"
+    write_file(results, args.write_dir, write_name)

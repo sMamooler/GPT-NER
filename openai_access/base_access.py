@@ -30,17 +30,30 @@ class AccessBase(object):
 
     def _get_multiple_sample(self, prompt_list: List[str]):
         openai.api_key = os.environ["OPENAI_API_KEY"]
-        response = openai.Completion.create(
-            engine=self.engine,
-            prompt=prompt_list,
+        # for i in range(len(prompt_list)):
+        #     print(prompt_list[i]["content"])
+        # print("#################################")
+        response = openai.ChatCompletion.create(
+            model=self.engine,
+            messages = prompt_list,
             temperature=self.temperature,
             max_tokens=self.max_tokens,
             top_p=self.top_p,
             frequency_penalty=self.frequency_penalty,
             presence_penalty=self.presence_penalty,
-            best_of=self.best_of
         )
-        results = [choice.text for choice in response.choices]
+        results = [choice.message.content for choice in response.choices]
+        # response = openai.ChatCompletion.create(
+        #     engine=self.engine,
+        #     prompt=prompt_list,
+        #     temperature=self.temperature,
+        #     max_tokens=self.max_tokens,
+        #     top_p=self.top_p,
+        #     frequency_penalty=self.frequency_penalty,
+        #     presence_penalty=self.presence_penalty,
+        #     best_of=self.best_of
+        # )
+        # results = [choice.text for choice in response.choices]
         # assert LOG_LEVEL == "INFO"
         logger.info(msg="prompt_and_result", extra={"prompt_list": prompt_list, "results": results})
         return results
@@ -75,7 +88,7 @@ class AccessBase(object):
                     logger.error("failed")
                     raise Exception(f"Maximum number of retries ({MAX_RETRIES}) exceeded.")
                 # Increment the delay
-                AccessBase.delay = max(AccessBase.delay, used_delay * EXPONENTIAL_BASE * (1 + jitter * random.random()))
+                # AccessBase.delay = max(AccessBase.delay, used_delay * EXPONENTIAL_BASE * (1 + jitter * random.random()))
                 # Sleep for the delay
 
             # Raise exceptions for any errors not specified
@@ -88,5 +101,5 @@ class AccessBase(object):
                     logger.error("failed")
                     raise Exception(f"Maximum number of retries ({MAX_RETRIES}) exceeded.")
                 # Increment the delay
-                AccessBase.delay = max(AccessBase.delay, used_delay * EXPONENTIAL_BASE * (1 + jitter * random.random()))
+                # AccessBase.delay = max(AccessBase.delay, used_delay * EXPONENTIAL_BASE * (1 + jitter * random.random()))
                 # Sleep for the delay

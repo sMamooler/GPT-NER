@@ -1,4 +1,11 @@
 FULL_DATA = {
+    "BC5": {
+        "CHEMICAL": ("chemical", "are substances with a distinct molecular composition that are produced by or used in a chemical process. They can be elements or compounds, and they may exist in various forms—solid, liquid, or gas"),
+        "DISEASE": ("disease", "are abnormal conditions or disorders of a structure or function in a living organism, often associated with specific signs and symptoms."),
+    },
+    "BC2GM" :{
+        "GENE": ("gene", "are a fundamental unit of heredity that carries and transmits information from one generation to the next. Genes are segments of DNA (deoxyribonucleic acid), which is a molecule that contains the instructions an organism needs to develop, grow, and function. Each gene serves as a code for a specific protein or set of proteins, and the sequence of nucleotides in a gene determines the order in which amino acids are assembled to form these proteins."),
+    },
     "CONLL": {
         "ORG": ("organization", "are limited to named corporate, governmental, or other organizational entities"),
         "PER": ("person", "are named persons or family"),

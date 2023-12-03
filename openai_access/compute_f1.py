@@ -1,6 +1,7 @@
 import json
 from tqdm import tqdm
 import argparse
+import regex as re
 
 def get_parser():
     parser = argparse.ArgumentParser()
@@ -36,35 +37,63 @@ def compute_f1(mrc_data, openai_data):
         candidate = []
         item_ = mrc_data[idx_]
         context_list = item_["context"].strip().split()
-        for sub_idx in range(len(item_["start_position"])):
-            start_ = item_["start_position"][sub_idx]
-            end_ = item_["end_position"][sub_idx]
-            reference.append((" ".join(context_list[start_:end_+1]), start_, end_))
+
+        ## for word level
+        # for sub_idx in range(len(item_["start_position_word"])):
+        #     start_ = item_["start_position_word"][sub_idx]
+        #     end_ = item_["end_position_word"][sub_idx]
+        #     reference.append((" ".join(context_list[start_:end_+1]), start_, end_))
         
 
-        flag = False
+        # flag = False
+        # candidate_sentence = openai_data[idx_]
+        # candidate_sentence_list = candidate_sentence.strip().split()
+        # start_ = 0
+        # for word_idx, word in enumerate(candidate_sentence_list):
+        #     if len(word) > 2 and word[0] == '@' and word[1] == '@':
+        #         flag = True
+        #         for end_ in range(word_idx, len(candidate_sentence_list)):
+        #             end_word = candidate_sentence_list[end_]
+        #             if len(end_word) > 2 and end_word[-1] == '#' and end_word[-2] == '#':
+        #                 entity_ = " ".join(candidate_sentence_list[word_idx:end_+1])[2:-2]
+        #                 len_ = end_ - word_idx + 1
+        #                 while start_ < len(context_list):
+        #                     if start_ + len_ - 1 < len(context_list) and " ".join(context_list[start_:start_+len_]) == entity_:
+        #                         candidate.append((" ".join(context_list[start_:start_+len_]), start_, start_ + len_ - 1))
+        #                         break
+        #                     start_ += 1
+        #                 break
+        #     if len(word) > 2 and word[-1] == '#' and word[-2] == '#':
+        #         flag = False
+        #         continue
+        #     if not flag:
+        #         start_ += 1
+
+        ## for char level
+        context = item_["context"]
+        for sub_idx in range(len(item_["start_position_char"])):
+            start_ = item_["start_position_char"][sub_idx]
+            end_ = item_["end_position_char"][sub_idx]
+            reference.append((context[start_:end_+1], start_, end_))
+        
+
         candidate_sentence = openai_data[idx_]
-        candidate_sentence_list = candidate_sentence.strip().split()
         start_ = 0
-        for word_idx, word in enumerate(candidate_sentence_list):
-            if len(word) > 2 and word[0] == '@' and word[1] == '@':
-                flag = True
-                for end_ in range(word_idx, len(candidate_sentence_list)):
-                    end_word = candidate_sentence_list[end_]
-                    if len(end_word) > 2 and end_word[-1] == '#' and end_word[-2] == '#':
-                        entity_ = " ".join(candidate_sentence_list[word_idx:end_+1])[2:-2]
-                        len_ = end_ - word_idx + 1
-                        while start_ < len(context_list):
-                            if start_ + len_ - 1 < len(context_list) and " ".join(context_list[start_:start_+len_]) == entity_:
-                                candidate.append((" ".join(context_list[start_:start_+len_]), start_, start_ + len_ - 1))
-                                break
-                            start_ += 1
-                        break
-            if len(word) > 2 and word[-1] == '#' and word[-2] == '#':
-                flag = False
-                continue
-            if not flag:
-                start_ += 1
+        # find all occurances of words between @@ and ## in the text
+        pattern = re.compile(r'@@.*?##')
+        matches = pattern.findall(candidate_sentence)
+        # for each match find the start and end indices of the match in the text
+        for match_entity in matches:
+            match_entity = match_entity[2:-2]
+            pattern = re.compile(re.escape(match_entity))
+            match = pattern.search(context[start_:])
+
+            start_ = match.span()[0] + start_ 
+            end_ = start_ + len(match_entity) - 1
+            candidate.append((context[start_:end_+1], start_, end_))
+            start_ = end_ + 1
+
+
 
         # item_ = openai_data[idx_]
         # context_list = item_.strip().split()

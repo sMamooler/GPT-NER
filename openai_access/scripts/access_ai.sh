@@ -1,13 +1,14 @@
-SOURCEDIR="/mnt/u14157_ic_nlp_001_files_nfs/nlpdata1/home/mamooler/ICL_IE_Project/GPT-NER/data/conll_mrc"
+SOURCEDIR="/Users/mamooler/Desktop/incontext_ie/GPT-NER/data/bc2gm"
 SOURCENAME="test.100"
-DATANAME="CONLL"
-EXAMPLEDIR="/mnt/u14157_ic_nlp_001_files_nfs/nlpdata1/home/mamooler/ICL_IE_Project/GPT-NER/data/conll_mrc/"
-EXAMPLENAME="test.100.simcse.train.32"
+DATANAME="BC2GM"
+EXAMPLEDIR="/Users/mamooler/Desktop/incontext_ie/GPT-NER/data/bc2gm"
+EXAMPLENAME="dummy"
 EXAMPLENUM=10
-WRITEDIR="/mnt/u14157_ic_nlp_001_files_nfs/nlpdata1/home/mamooler/ICL_IE_Project/GPT-NER/results/conll_mrc/100-results"
+WRITEDIR="/Users/mamooler/Desktop/incontext_ie/GPT-NER/results/bc2gm/100-results"
 WRITENAME="random.test"
 TRAINNAME="train"
 DEMORETRIEVAL="random"
+SEED=12345
 
 python ./get_results_mrc_knn.py \
     --source-dir $SOURCEDIR --source-name $SOURCENAME \
@@ -15,5 +16,5 @@ python ./get_results_mrc_knn.py \
     --example-name $EXAMPLENAME \
     --example-num $EXAMPLENUM --train-name $TRAINNAME \
     --write-dir $WRITEDIR --write-name $WRITENAME \
-    --demo_retrieval $DEMORETRIEVAL
+    --demo_retrieval $DEMORETRIEVAL --seed $SEED \
     # --last-results "/home/wangshuhe/gpt-ner/openai_access/low_resource_data/conll_en/results/openai.8.train.sequence.fullprompt"
